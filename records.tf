@@ -1,11 +1,12 @@
-locals {
-  recordsets = { for rs in local.records : try(rs.key, join(" ", compact(["${rs.name} ${rs.type}", try(rs.set_identifier, "")]))) => rs }
+data "cloudflare_zone" "this" {
+  count = var.zone_name != "" ? 1 : 0
+  name  = var.zone_name
 }
 
 resource "cloudflare_record" "records" {
-  for_each = { for k, v in local.recordsets : k => v }
+  for_each = { for record in var.records : record.name => record }
 
-  zone_id         = try(each.value.zone_id, var.cloudflare_zone_id)
+  zone_id         = try(each.value.zone_id, data.cloudflare_zone.this[0].id)
   name            = each.value.name
   value           = each.value.value
   type            = each.value.type
